@@ -1,7 +1,7 @@
 
 var _ = require('lodash');
 
-
+// Determines if the Reflux action is an API action. 
 function isApiAction(definition) {
 
 	var isapiaction = false;
@@ -15,9 +15,8 @@ function isApiAction(definition) {
 	return isapiaction;
 }
 
-function retry(actionArgs) {			
-
-	console.log();
+// retries actions so we have automatic retry ability   
+function retry(actionArgs) {				
 
 	var callingActionArgs = actionArgs.actionArgs,
 			description = actionArgs.description || 'action',
@@ -46,25 +45,33 @@ function createListener(definition) {
 
 	return function() {
 			
-			var action = this;
+			var actionArgs,
+					action,					
+					msg;
 
+			if (arguments.length > 1) { throw new Error('Refluxar Api actions should be called with a single argument or without any arguments only. Consider adding your arguments to an object and passing that in.'); }
 			
-			var msg = definition.prepare.apply(action, arguments);
+			action = this;
+			
+			// prepare the message to send 			
+			msg = definition.prepare.apply(action, arguments);
 
-			var actionArgs = arguments[0];
-
+			// setup no of retries
+			actionArgs = arguments[0] || {};
 			if (typeof actionArgs.retrycount === 'undefined') { actionArgs.retrycount = 2; }
 
 			
 			definition.invoke(msg)
 			.then(function(result) {
-
-				action.completed(result.data);							
+				
+				action.completed({
+														input: msg,
+														data: result.data,
+														result: result 
+													});							
 			})
 			.catch(function(e) {
-
-				
-				
+								
 				retry({
 					actionArgs: actionArgs, 
 					description: msg.messageType,
@@ -74,15 +81,14 @@ function createListener(definition) {
 						console.log('finished retrying');				
 						console.log(erroredArgs);
 
-						action.failed(e);
+						action.failed({
+														input: msg,														
+														result: e 
+													});
 					}
-				});
-								
-
-				
+				});												
 			});
-			
-			
+						
 		};
 }
 
