@@ -70,7 +70,7 @@ function createListener(definition) {
 														result: result 
 													});							
 			})
-			.catch(function(e) {
+			.catch(function(result) {
 								
 				retry({
 					actionArgs: actionArgs, 
@@ -82,8 +82,9 @@ function createListener(definition) {
 						console.log(erroredArgs);
 
 						action.failed({
-														input: msg,														
-														result: e 
+														input: msg,
+														data: result.data,
+														result: result 
 													});
 					}
 				});												
